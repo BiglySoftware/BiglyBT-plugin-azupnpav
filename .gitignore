@@ -1,2 +1,7 @@
 /.classpath
 /.project
+*.class
+*.jar
+*.zip
+*.biglybt
+*.DS_Store
