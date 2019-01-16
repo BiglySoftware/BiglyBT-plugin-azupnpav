@@ -51,7 +51,6 @@ import com.biglybt.core.networkmanager.admin.NetworkAdminNetworkInterface;
 import com.biglybt.core.networkmanager.admin.NetworkAdminNetworkInterfaceAddress;
 import com.biglybt.core.util.average.AverageFactory;
 import com.biglybt.core.util.average.MovingImmediateAverage;
-import org.gudy.bouncycastle.util.encoders.*;
 import org.gudy.bouncycastle.util.encoders.Base64;
 
 

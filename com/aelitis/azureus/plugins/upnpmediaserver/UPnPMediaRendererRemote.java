@@ -66,13 +66,13 @@ UPnPMediaRendererRemote
 			
 			String	service_type = service.getServiceType();
 						
-			if ( service_type.equals( "urn:schemas-upnp-org:service:RenderingControl:1" )){
+			if ( GeneralUtils.startsWithIgnoreCase( service_type, "urn:schemas-upnp-org:service:RenderingControl:" )){
 				
 				log( "    found RenderingControl" );
 				
 				rendering_control = service;
 				
-			}else if ( service_type.equals( "urn:schemas-upnp-org:service:ConnectionManager:1" )){
+			}else if ( GeneralUtils.startsWithIgnoreCase( service_type, "urn:schemas-upnp-org:service:ConnectionManager:" )){
 				
 				log( "    found ConnectionManager" );
 				
@@ -80,7 +80,7 @@ UPnPMediaRendererRemote
 		
 				fillSinkProtocolList();
 				
-			}else if ( service_type.equals( "urn:schemas-upnp-org:service:AVTransport:1" )){
+			}else if ( GeneralUtils.startsWithIgnoreCase( service_type, "urn:schemas-upnp-org:service:AVTransport:" )){
 				
 				log( "    found AVTransport" );
 				
