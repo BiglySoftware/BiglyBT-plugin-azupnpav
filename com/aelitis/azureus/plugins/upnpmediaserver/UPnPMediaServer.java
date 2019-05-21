@@ -34,6 +34,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.*;
 import java.util.*;
+import java.util.regex.Matcher;
 
 import com.biglybt.core.content.*;
 import com.biglybt.net.upnp.*;
@@ -2597,8 +2598,8 @@ UPnPMediaServer
 													content += new String( buffer, 0, len, "UTF-8" );
 												}
 												
-												content = content.replaceAll( "%UUID%", UUID_rootdevice );
-												content = content.replaceAll( "%SERVICENAME%", service_name );
+												content = content.replaceAll( "%UUID%", Matcher.quoteReplacement(UUID_rootdevice) );
+												content = content.replaceAll( "%SERVICENAME%", Matcher.quoteReplacement(service_name) );
 												
 												stream.close();
 												

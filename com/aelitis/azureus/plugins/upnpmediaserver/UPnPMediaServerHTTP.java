@@ -26,6 +26,7 @@ package com.aelitis.azureus.plugins.upnpmediaserver;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.regex.Matcher;
 
 import com.biglybt.core.util.Debug;
 import com.biglybt.pif.tracker.Tracker;
@@ -330,7 +331,7 @@ UPnPMediaServerHTTP
 					for (Map.Entry<String,String> entry: substitutions.entrySet()){
 					
 						
-						content = content.replaceAll( "%" + entry.getKey() + "%", entry.getValue());
+						content = content.replaceAll( "%" + entry.getKey() + "%", Matcher.quoteReplacement(entry.getValue()));
 					}
 										
 					stream.close();
