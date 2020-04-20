@@ -318,12 +318,29 @@ UPnPMediaRendererRemote
 			
 			invoke.addArgument( "InstanceID", current_av_id );
 			invoke.addArgument( "CurrentURI", item.getURI( host, -1 ));
-			//invoke.addArgument( "CurrentURIMetaData", "NOT_IMPLEMENTED");
-			String didl = item.getDIDL(host, stream_id);
+
+			String didl_inner = item.getDIDL(host, stream_id);
+
+				// updates from https://github.com/BiglySoftware/BiglyBT/issues/1605
+
+			String didl_outter = 
+					"<DIDL-Lite " + 
+						"xmlns=\"urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/\" " +
+						"xmlns:dc=\"http://purl.org/dc/elements/1.1/\" " + 
+						"xmlns:dlna=\"urn:schemas-dlna-org:metadata-1-0/\" " +
+						"xmlns:upnp=\"urn:schemas-upnp-org:metadata-1-0/upnp/\">" + 
+					"<item id=\"1000\" restricted=\"1\" parentID=\"0\">" +
+					didl_inner + 
+					"</item></DIDL-Lite>";
+	
+			//invoke.addArgument(
+			//		"CurrentURIMetaData",
+			//		"&lt;DIDL-Lite xmlns=&quot;urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/&quot; xmlns:dc=&quot;http://purl.org/dc/elements/1.1/&quot; xmlns:upnp=&quot;urn:schemas-upnp-org:metadata-1-0/upnp/&quot;&gt;&lt;item id=&quot;0&quot;&gt;"
+			//				+ plugin.escapeXML(didl) + "&lt;/item&gt;&lt;/DIDL-Lite&gt;");
+			
 			invoke.addArgument(
 					"CurrentURIMetaData",
-					"&lt;DIDL-Lite xmlns=&quot;urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/&quot; xmlns:dc=&quot;http://purl.org/dc/elements/1.1/&quot; xmlns:upnp=&quot;urn:schemas-upnp-org:metadata-1-0/upnp/&quot;&gt;&lt;item id=&quot;0&quot;&gt;"
-							+ plugin.escapeXML(didl) + "&lt;/item&gt;&lt;/DIDL-Lite&gt;");
+					plugin.escapeXML( didl_outter ));
 			
 			invoke.invoke();
 			

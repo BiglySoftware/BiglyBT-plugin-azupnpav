@@ -62,9 +62,10 @@ UPnPMediaServerHTTP
 		
 		try{
 			web_context = 
-				plugin.getPluginInterface().getTracker().createWebContext(
-						port,
-						Tracker.PR_HTTP );
+					plugin.getPluginInterface().getTracker().createWebContext(
+							"UPnP Media Server: HTTP",
+							port,
+							Tracker.PR_HTTP );
 			
 			web_context.addAuthenticationListener(
 				new TrackerAuthenticationListener()

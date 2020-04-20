@@ -2276,7 +2276,7 @@ UPnPMediaServer
 	getServerName()
 	{
 		return( System.getProperty( "os.name" ) + "/" + System.getProperty("os.version") + " UPnP/1.0 " +
-				Constants.AZUREUS_NAME + "/" + Constants.AZUREUS_VERSION );
+				Constants.APP_NAME + "/" + Constants.getCurrentVersion());
 	}
 	
 	protected void
@@ -2425,9 +2425,10 @@ UPnPMediaServer
 				}
 				
 				ssdp_web_context = 
-					plugin_interface.getTracker().createWebContext(
-							ssdp_port,
-							Tracker.PR_HTTP );
+						plugin_interface.getTracker().createWebContext(
+								"UPnP Media Server: SSDP",
+								ssdp_port,
+								Tracker.PR_HTTP );
 				
 				ssdp_web_context.addAuthenticationListener(
 					new TrackerAuthenticationAdapter()
