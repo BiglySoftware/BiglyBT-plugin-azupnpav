@@ -323,13 +323,20 @@ UPnPMediaRendererRemote
 
 				// updates from https://github.com/BiglySoftware/BiglyBT/issues/1605
 
+			int parent_id = item.getParentID();
+			
+			if ( parent_id < 0 ){
+				
+				parent_id = 0;
+			}
+			
 			String didl_outter = 
 					"<DIDL-Lite " + 
 						"xmlns=\"urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/\" " +
 						"xmlns:dc=\"http://purl.org/dc/elements/1.1/\" " + 
 						"xmlns:dlna=\"urn:schemas-dlna-org:metadata-1-0/\" " +
 						"xmlns:upnp=\"urn:schemas-upnp-org:metadata-1-0/upnp/\">" + 
-					"<item id=\"1000\" restricted=\"1\" parentID=\"0\">" +
+					"<item id=\"" + item.getID() + "\" restricted=\"1\" parentID=\"" + parent_id + "\">" +
 					didl_inner + 
 					"</item></DIDL-Lite>";
 	
