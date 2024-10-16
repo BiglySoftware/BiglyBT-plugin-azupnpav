@@ -39,13 +39,15 @@ import java.util.Set;
 
 import com.biglybt.core.content.*;
 import com.biglybt.core.internat.MessageText;
+import com.biglybt.core.torrent.TOTorrent;
 import com.biglybt.core.util.*;
 import com.biglybt.pif.disk.DiskManagerFileInfo;
 import com.biglybt.pif.download.Download;
+import com.biglybt.pif.download.DownloadException;
 import com.biglybt.pif.download.DownloadManager;
 import com.biglybt.pif.torrent.Torrent;
 import com.biglybt.pif.torrent.TorrentAttribute;
-
+import com.biglybt.pifimpl.local.PluginCoreUtils;
 import com.biglybt.core.content.ContentDirectory;
 
 
@@ -183,8 +185,8 @@ UPnPMediaServerContentDirectory
 	
 	private int		system_update_id	= random.nextInt( Integer.MAX_VALUE );
 
-	private Map<Integer,content>		content_map 	= new HashMap<Integer,content>();
-	private Map<String,content>		resourcekey_map 	= new HashMap<String,content>();
+	private Map<Integer,content>		content_map 		= new HashMap<>();
+	private Map<ResourceKey,content>	resourcekey_map 	= new HashMap<>();
 
 	private Map<String,Long>			config;
 	private boolean						config_dirty;
@@ -226,18 +228,20 @@ UPnPMediaServerContentDirectory
 			
 			return;
 		}
-		
-		HashWrapper hash = new HashWrapper(torrent.getHash());
+				
+		byte[] hash = torrent.getHash();
 
 		DiskManagerFileInfo[]	files = download.getDiskManagerFileInfo();
 
 		synchronized( lock ){
 				
+			HashWrapper hw = new HashWrapper( hash );
+					
 			if ( files.length == 1 ){
 						
-				String title = getUniqueName( download, hash, files[0].getFile().getName());
+				String title = getUniqueName( download, hw, files[0].getFile().getName());
 				
-				contentItem	item = new contentItem( downloads_container, getACF( files[0]), download.getTorrent().getHash(), title );
+				contentItem	item = new contentItem( downloads_container, getACF( files[0]), hash, title );
 				
 				addToFilters( item );
 				
@@ -247,7 +251,7 @@ UPnPMediaServerContentDirectory
 					new contentContainer( 
 							downloads_container,
 							getACD( download ),
-							getUniqueName( download, hash, download.getName()));
+							getUniqueName( download, hw, download.getName()));
 								
 				Set<String>	name_set = new HashSet<String>();
 				
@@ -282,7 +286,7 @@ UPnPMediaServerContentDirectory
 						title =  ( j + 1 ) + ". " + title;
 					}
 					
-					new contentItem( container, getACF( file ), hash.getBytes(), title );
+					new contentItem( container, getACF( file ), hash, title );
 				}
 				
 				addToFilters( container );
@@ -300,14 +304,17 @@ UPnPMediaServerContentDirectory
 			
 			try{
 				byte[]	hash = file.getDownloadHash();
-				
-				
+						
 				String title;
 				
 				Object otitle = content_file.getProperty(ContentFile.PT_TITLE);
+				
 				if (otitle instanceof String) {
+					
 					title = getUniqueName( null, null, (String) otitle);
-				} else {
+					
+				}else{
+					
 					title = getUniqueName( null, new HashWrapper( hash ), file.getFile().getName());
 				}
 					
@@ -336,13 +343,13 @@ UPnPMediaServerContentDirectory
 		synchronized( lock ){
 			
 			try{
-				byte[]	hash = file.getDownloadHash();
+				HashWrapper	hash = new HashWrapper( file.getDownloadHash());
 				
-				String unique_name = getUniqueName( null, new HashWrapper( hash ), file.getFile().getName());
+				String unique_name = getUniqueName( null, hash, file.getFile().getName());
 											
 				content container = downloads_container.removeChild( unique_name );
 	
-				removeUniqueName( new HashWrapper( hash ));
+				removeUniqueName( hash );
 				
 				if ( container != null ){
 					
@@ -637,7 +644,8 @@ UPnPMediaServerContentDirectory
 			
 			unique_names.add( result );
 			
-			if (hw != null) {
+			if ( hw != null ){
+				
 				unique_name_map.put( hw, result );
 			}
 			
@@ -731,35 +739,63 @@ UPnPMediaServerContentDirectory
 	}
 		
 	protected contentItem
-	getContentFromResourceID(
-		String		id )
+	getContentFromResourceIDStr(
+		String		id_str )
 	{
-		return( getContentFromResourceIDSupport( id, false ));
-	}
-	
-	protected contentItem
-	getContentFromResourceIDSupport(
-		String		id,
-		boolean		is_peek )
-	{
-		if ( !is_peek ){
-			
-			ensureStarted();
-		}
+		ensureStarted();
 
-		int pos = id.indexOf( "." );
+		int pos = id_str.indexOf( "." );
 		
 		if ( pos != -1 ){
 			
-			id = id.substring( 0, pos );
+			id_str = id_str.substring( 0, pos );
 		}
 
-		content content = resourcekey_map.get(id);
+		String[] bits = id_str.split( "-" );
+		
+		if ( bits.length == 2 ){
+		
+			try{
+				byte[]	hash	= ByteFormatter.decodeString( bits[0] );
+				int		index	= Integer.parseInt( bits[1] );
+				
+				content content = resourcekey_map.get( new ResourceKey( hash, index ));
+				
+				if ( content instanceof contentItem ) {
+					
+					return((contentItem)content );
+				}
+			}catch( Throwable e ){
+				
+				Debug.out( e );
+			}
+		}
+		return null;
+	}
+	
+	protected contentItem
+	getContentFromResourceID(
+		ResourceID		id )
+	{
+		ensureStarted();
+
+		content content = resourcekey_map.get(id.getKey());
+		
 		if ( content instanceof contentItem ) {
-			return (contentItem) content;
+			
+			return((contentItem)content );
 		}
 
 		return null;
+	}
+	
+	protected contentItem
+	getContentFromFile(
+		DiskManagerFileInfo		file )
+	{	
+		ResourceID	id = getContentResourceID( file );
+
+		return( getContentFromResourceID( id ));
 	}
 	
 	protected contentItem
@@ -953,9 +989,12 @@ UPnPMediaServerContentDirectory
 	{
 		ensureStarted();
 		
-		String resourceKey = UPnPMediaServer.getContentResourceKey(hash, file_index);
+		ResourceKey resourceKey = getContentResourceKey( hash, file_index );
+		
 		content content = resourcekey_map.get(resourceKey);
-		if ( content instanceof contentItem ) {
+		
+		if ( content instanceof contentItem ){ 
+			
 			return (contentItem) content;
 		}
 
@@ -1425,7 +1464,7 @@ UPnPMediaServerContentDirectory
 			
 			if ( _parent != null ){
 				
-				_parent.addChildz( this );
+				_parent.addChild( this );
 			}
 		}
 		
@@ -1442,13 +1481,18 @@ UPnPMediaServerContentDirectory
 			
 			if ( _parent != null ){
 				
-				_parent.addChildz( this );
+				_parent.addChild( this );
 			}
 		}
 		
-		public contentContainer(contentContainer _parent, String _name,
-				String _mediaClass) {
+		public 
+		contentContainer(
+			contentContainer _parent, 
+			String			_name,
+			String			_mediaClass) 
+		{
 			this(_parent, _name);
+			
 			mediaClass = _mediaClass;
 		}
 
@@ -1514,7 +1558,7 @@ UPnPMediaServerContentDirectory
 		}
 		
 		protected void
-		addChildz(
+		addChild(
 			content		child )
 		{
 			//logger.log( "Container: adding child '" + child.getName() + "' to '" + getName() + "'" );
@@ -1756,20 +1800,20 @@ UPnPMediaServerContentDirectory
 		extends content
 		implements Cloneable
 	{
-		private final ContentFile content_file;
-		private final byte[]					hash;
-		private final String					title;
+		private final ContentFile 	content_file;
+		private final byte[]		hash;
+		private final String		title;
 		
 		private boolean		valid;
 				
 		private String[]		content_types;
-		private String		item_class;
-		private String resource_key;
+		private String			item_class;
+		private ResourceKey 	resource_key;
 		
 		protected 
 		contentItem(
 			contentContainer		_parent,
-			ContentFile _content_file,
+			ContentFile 			_content_file,
 			byte[]					_hash,
 			String					_title )
 		{
@@ -1808,16 +1852,14 @@ UPnPMediaServerContentDirectory
 					item_class		= CONTENT_UNKNOWN;
 				}
 				
-				resource_key = UPnPMediaServer.getContentResourceKey(hash, content_file.getFile().getIndex());
-				resourcekey_map.put(resource_key, this);
+				resource_key = getContentResourceKey( hash, content_file.getFile().getIndex());
+				
+				resourcekey_map.put( resource_key, this);
+				
 			}finally{
 				
-				_parent.addChildz( this );
+				_parent.addChild( this );
 			}
-		}
-		
-		public String getResourceKey() {
-			return resource_key;
 		}
 		
 		@Override
@@ -1830,7 +1872,7 @@ UPnPMediaServerContentDirectory
 				
 				res.parent = parent;
 				
-				parent.addChildz( res );
+				parent.addChild( res );
 				
 				return( res );
 				
@@ -1852,12 +1894,6 @@ UPnPMediaServerContentDirectory
 		getFile()
 		{
 			return( content_file.getFile());
-		}
-				
-		protected byte[]
-		getHash()
-		{
-			return( hash );
 		}
 				
 		protected String
@@ -2074,8 +2110,8 @@ UPnPMediaServerContentDirectory
 			String	host,
 			int		stream_id )
 		{
-			return UPnPMediaServer.getContentResourceURI(getFile(), host, 
-					media_server.getContentServer().getPort(), stream_id);
+			return( UPnPMediaServerContentDirectory.getContentResourceURI(
+						getFile(), host, media_server.getContentServer().getPort(), stream_id));
 		}
 		
 		protected String
@@ -2332,7 +2368,11 @@ UPnPMediaServerContentDirectory
 			boolean	is_link )
 		{
 			super.deleted( is_link );
-			resourcekey_map.remove(resource_key);
+			
+			if ( !is_link ){
+			
+				resourcekey_map.remove( resource_key );
+			}
 		}
 		
 		@Override
@@ -2381,4 +2421,138 @@ UPnPMediaServerContentDirectory
 		}
 	}
 
+	public static String
+	getContentResourceURI(
+		DiskManagerFileInfo file,
+		String	host,
+		int port,
+		int		stream_id )
+	{
+		return( "http://" + UrlUtils.convertIPV6Host( host ) + ":" + port + "/Content/" + getContentResourceID( file ).getString() + (stream_id==-1?"":("?sid=" + stream_id ))); 
+	}
+
+	public static ResourceKey
+	getContentResourceKey(
+		byte[]		hash,
+		int 		index )
+	{
+		return( new ResourceKey( hash, index ));
+	}
+
+	public static ResourceID
+	getContentResourceID(
+		DiskManagerFileInfo		file )
+	{
+		byte[] hash;
+		
+		try {
+			hash = file.getDownloadHash();
+			
+		}catch (DownloadException e){
+			
+			hash = new byte[0];
+		}
+				
+		ResourceKey	key = getContentResourceKey( hash, file.getIndex());
+		
+		String	name = file.getFile().getName();
+		
+		int	pos = name.lastIndexOf('.');
+		
+		String ext;
+		
+		if ( pos != -1 && !name.endsWith(".")){
+			
+			ext = name.substring( pos+1 );
+			
+		}else{
+			
+			ext = null;
+		}
+		
+		return( new ResourceID( key, ext ));
+	}
+	
+	private static class
+	ResourceKey
+	{
+		private final byte[] 	hash;
+		private final int		index;
+		
+		private
+		ResourceKey(
+			byte[]		_hash,
+			int			_index )
+		{
+			hash		= _hash;
+			index		= _index;
+		}
+		
+		@Override
+		public int 
+		hashCode()
+		{
+			return( Arrays.hashCode( hash ) + index );
+		}
+		
+		@Override
+		public boolean 
+		equals(
+			Object obj)
+		{
+			if ( obj instanceof ResourceKey ){
+				
+				ResourceKey o = (ResourceKey)obj;
+				
+				return( index == o.index && Arrays.equals( hash, o.hash ));
+				
+			}else{
+				
+				return( false );
+			}
+		}
+		
+		public String
+		getString()
+		{
+			return( ByteFormatter.encodeString( hash ) + "-" + index );
+		}
+	}
+	
+	public static class
+	ResourceID
+	{
+		private final ResourceKey		key;
+		private final String			ext;
+		
+		private
+		ResourceID(
+			ResourceKey		_key,
+			String			_ext )
+		{
+			key		= _key;
+			ext		= _ext;
+		}
+		
+		private ResourceKey
+		getKey()
+		{
+			return( key );
+		}
+		
+		public String
+		getString()
+		{
+			String str = key.getString();
+			
+			if ( ext != null ){
+				
+				return( str + "." + ext );
+				
+			}else{
+				
+				return( str );
+			}
+		}
+	}
 }

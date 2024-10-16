@@ -34,6 +34,7 @@ import com.biglybt.core.util.Average;
 import com.biglybt.core.util.Base32;
 import com.biglybt.core.util.Debug;
 import com.biglybt.core.util.DisplayFormatters;
+import com.biglybt.core.util.HashWrapper;
 import com.biglybt.core.util.SystemTime;
 import com.biglybt.core.util.ThreadPool;
 import com.biglybt.core.util.ThreadPoolTask;
@@ -1016,7 +1017,7 @@ outer:
 							}
 						}
 						
-						item = plugin.getContentDirectory().getContentFromResourceID( content );
+						item = plugin.getContentDirectory().getContentFromResourceIDStr( content );
 					}
 					
 					if ( item == null ){

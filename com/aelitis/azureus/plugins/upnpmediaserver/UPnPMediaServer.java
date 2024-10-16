@@ -1261,13 +1261,12 @@ UPnPMediaServer
 						}
 					}
 					
-					if (download == null) {
+					if ( download == null ){
+						
 						return;
 					}
-					
-					String	id = getContentResourceID( file );
-						
-					UPnPMediaServerContentDirectory.contentItem item = content_directory.getContentFromResourceID( id );
+											
+					UPnPMediaServerContentDirectory.contentItem item = content_directory.getContentFromFile( file );
 					
 					if ( item != null ){
 					
@@ -1459,22 +1458,13 @@ UPnPMediaServer
 		}
 	}
 
-	protected void playOnRenderer(UPnPMediaRenderer renderer, Download download,
-			DiskManagerFileInfo file) {
+	protected void 
+	playOnRenderer(
+		UPnPMediaRenderer 	renderer, 
+		Download			download,
+		DiskManagerFileInfo file) {
 		
-		byte[] hash;
-		
-		try {
-			hash = file.getDownloadHash();
-		} catch (DownloadException e1) {
-			if (download == null) {
-				return;
-			}
-			hash = download.getTorrentHash();
-		}
-		String id = getContentResourceID(file);
-
-		UPnPMediaServerContentDirectory.contentItem item = content_directory.getContentFromResourceID(id);
+		UPnPMediaServerContentDirectory.contentItem item = content_directory.getContentFromFile( file );
 
 		if (item != null) {
 
@@ -2181,7 +2171,7 @@ UPnPMediaServer
 		throws IPCException
 	{
 		try{
-			return getContentResourceURI(file, getLocalIP(), getActivePort(), -1);
+			return UPnPMediaServerContentDirectory.getContentResourceURI(file, getLocalIP(), getActivePort(), -1);
 		} catch (Throwable t) {
 			
 			throw new IPCException(t);
@@ -2195,9 +2185,7 @@ UPnPMediaServer
 		throws IPCException
 	{
 		try{
-			String	id = getContentResourceID( file );
-
-			UPnPMediaServerContentDirectory.contentItem item = content_directory.getContentFromResourceID( id );
+			UPnPMediaServerContentDirectory.contentItem item = content_directory.getContentFromFile( file );
 
 			if ( item != null ){
 
@@ -2235,9 +2223,7 @@ UPnPMediaServer
 		DiskManagerFileInfo	file )
 	{
 		try{
-			String	id = getContentResourceID( file );
-		
-			UPnPMediaServerContentDirectory.contentItem item = content_directory.getContentFromResourceID( id );
+			UPnPMediaServerContentDirectory.contentItem item = content_directory.getContentFromFile( file );
 			
 			if ( item == null ){
 				
@@ -3733,16 +3719,12 @@ UPnPMediaServer
 				throw( new IPCException( "Failed to get download from file", e ));
 			}
 		}
-		
-		String	id = getContentResourceID( file );
-		
-		System.out.println( "play: " + id );
-
-		UPnPMediaServerContentDirectory.contentItem item = content_directory.getContentFromResourceID( id );
+				
+		UPnPMediaServerContentDirectory.contentItem item = content_directory.getContentFromFile( file );
 		
 		if ( item == null ){
 			
-			throw( new IPCException( "Failed to find item for id '" + id + "'" ));
+			throw( new IPCException( "Failed to find item for " + download.getName() + "/" + file.getFile( true )));
 		}
 		
 		String url = item.getURI( getLocalIP(), -1 );
@@ -4341,46 +4323,4 @@ UPnPMediaServer
 		}
 	}
 
-	public static String
-	getContentResourceURI(
-		DiskManagerFileInfo file,
-		String	host,
-		int port,
-		int		stream_id )
-	{
-		return( "http://" + UrlUtils.convertIPV6Host( host ) + ":" + port + "/Content/" + getContentResourceID( file ) + (stream_id==-1?"":("?sid=" + stream_id ))); 
-	}
-
-	public static String
-	getContentResourceKey(
-		byte[]					hash,
-		int index )
-	{
-		return ByteFormatter.encodeString(hash) + "-" + index;
-	}
-
-	public static String
-	getContentResourceID(
-		DiskManagerFileInfo		file )
-	{
-		byte[] hash;
-		try {
-			hash = file.getDownloadHash();
-		} catch (DownloadException e) {
-			hash = new byte[0];
-		}
-		
-		String	res = getContentResourceKey(hash, file.getIndex());
-		
-		String	name = file.getFile().getName();
-		
-		int	pos = name.lastIndexOf('.');
-		
-		if ( pos != -1 && !name.endsWith(".")){
-			
-			res += name.substring( pos );
-		}
-		
-		return( res );
-	}
 }
