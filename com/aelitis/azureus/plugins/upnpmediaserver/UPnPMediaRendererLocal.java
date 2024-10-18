@@ -22,10 +22,9 @@
 
 package com.aelitis.azureus.plugins.upnpmediaserver;
 
+import com.aelitis.azureus.plugins.upnpmediaserver.UPnPMediaServerContentDirectory.CDContentItem;
 import com.biglybt.core.util.Debug;
 import com.biglybt.pif.ipc.IPCInterface;
-
-import com.aelitis.azureus.plugins.upnpmediaserver.UPnPMediaServerContentDirectory.contentItem;
 
 public class 
 UPnPMediaRendererLocal 
@@ -67,8 +66,8 @@ UPnPMediaRendererLocal
 	@Override
 	public void
 	play(
-		UPnPMediaServerContentDirectory.contentItem		item,
-		int												stream_id )
+		CDContentItem		item,
+		int					stream_id )
 	{
 		try{
 			callback.invoke(
@@ -84,9 +83,9 @@ UPnPMediaRendererLocal
 	@Override
 	public void
 	play(
-			contentItem item, 
-			int stream_id,
-			UPnPMediaServerErrorListener error_listener) 
+		CDContentItem 					item, 
+		int 							stream_id,
+		UPnPMediaServerErrorListener	error_listener) 
 	{
 		play(item, stream_id);
 	}

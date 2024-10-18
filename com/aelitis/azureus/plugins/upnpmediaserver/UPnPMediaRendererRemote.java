@@ -139,7 +139,7 @@ UPnPMediaRendererRemote
 	@Override
 	public void
 	play(
-		final UPnPMediaServerContentDirectory.contentItem	item,
+		final UPnPMediaServerContentDirectory.CDContentItem	item,
 		final int											stream_id )
 	{
 		play(item, stream_id, null);
@@ -148,7 +148,7 @@ UPnPMediaRendererRemote
 	@Override
 	public void
 	play(
-		final UPnPMediaServerContentDirectory.contentItem	item,
+		final UPnPMediaServerContentDirectory.CDContentItem	item,
 		final int											stream_id,
 		final UPnPMediaServerErrorListener error_listener)
 	{
@@ -171,7 +171,7 @@ UPnPMediaRendererRemote
 	
 	protected void
 	playSupport(
-		UPnPMediaServerContentDirectory.contentItem		item,
+		UPnPMediaServerContentDirectory.CDContentItem		item,
 		int												stream_id )
 	throws UPnPException
 	{

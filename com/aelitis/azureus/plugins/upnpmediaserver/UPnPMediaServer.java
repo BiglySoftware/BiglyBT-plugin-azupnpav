@@ -1266,7 +1266,7 @@ UPnPMediaServer
 						return;
 					}
 											
-					UPnPMediaServerContentDirectory.contentItem item = content_directory.getContentFromFile( file );
+					UPnPMediaServerContentDirectory.CDContentItem item = content_directory.getContentFromFile( file );
 					
 					if ( item != null ){
 					
@@ -1464,7 +1464,7 @@ UPnPMediaServer
 		Download			download,
 		DiskManagerFileInfo file) {
 		
-		UPnPMediaServerContentDirectory.contentItem item = content_directory.getContentFromFile( file );
+		UPnPMediaServerContentDirectory.CDContentItem item = content_directory.getContentFromFile( file );
 
 		if (item != null) {
 
@@ -1663,7 +1663,7 @@ UPnPMediaServer
 	@Override
 	public void
 	contentChanged(
-		ContentFile file,
+		ContentFile 		file,
 		String 				property )
 	{
 		
@@ -2040,14 +2040,14 @@ UPnPMediaServer
 	
 		throws IPCException
 	{
-		UPnPMediaServerContentDirectory.content	c = content_directory.getContentFromID( content_id );
+		UPnPMediaServerContentDirectory.CDContent	c = content_directory.getContentFromID( content_id );
 		
-		if ( c == null || !( c instanceof UPnPMediaServerContentDirectory.contentItem )){
+		if ( c == null || !( c instanceof UPnPMediaServerContentDirectory.CDContentItem )){
 			
 			throw( new IPCException( "Content id " + content_id + " not found" ));
 		}
 		
-		UPnPMediaServerContentDirectory.contentItem	item = (UPnPMediaServerContentDirectory.contentItem)c;
+		UPnPMediaServerContentDirectory.CDContentItem	item = (UPnPMediaServerContentDirectory.CDContentItem)c;
 
 		DiskManagerFileInfo	file = item.getFile();
 		
@@ -2089,14 +2089,14 @@ UPnPMediaServer
 	
 		throws IPCException
 	{
-		UPnPMediaServerContentDirectory.content	c = content_directory.getContentFromID( content_id );
+		UPnPMediaServerContentDirectory.CDContent	c = content_directory.getContentFromID( content_id );
 		
-		if ( c == null || !( c instanceof UPnPMediaServerContentDirectory.contentItem )){
+		if ( c == null || !( c instanceof UPnPMediaServerContentDirectory.CDContentItem )){
 			
 			throw( new IPCException( "Content id " + content_id + " not found" ));
 		}
 		
-		UPnPMediaServerContentDirectory.contentItem	item = (UPnPMediaServerContentDirectory.contentItem)c;
+		UPnPMediaServerContentDirectory.CDContentItem	item = (UPnPMediaServerContentDirectory.CDContentItem)c;
 
 		String	cla = item.getContentClass();
 		
@@ -2185,7 +2185,7 @@ UPnPMediaServer
 		throws IPCException
 	{
 		try{
-			UPnPMediaServerContentDirectory.contentItem item = content_directory.getContentFromFile( file );
+			UPnPMediaServerContentDirectory.CDContentItem item = content_directory.getContentFromFile( file );
 
 			if ( item != null ){
 
@@ -2223,7 +2223,7 @@ UPnPMediaServer
 		DiskManagerFileInfo	file )
 	{
 		try{
-			UPnPMediaServerContentDirectory.contentItem item = content_directory.getContentFromFile( file );
+			UPnPMediaServerContentDirectory.CDContentItem item = content_directory.getContentFromFile( file );
 			
 			if ( item == null ){
 				
@@ -3365,7 +3365,7 @@ UPnPMediaServer
 		int		total_matches	= 0;
 		int		update_id		= content_directory.getSystemUpdateID();
 		
-		UPnPMediaServerContentDirectory.content	cont = content_directory.getContentFromID( oid.length()==0?0:Integer.parseInt(oid ));
+		UPnPMediaServerContentDirectory.CDContent	cont = content_directory.getContentFromID( oid.length()==0?0:Integer.parseInt(oid ));
 		
 		
 		if ( cont == null ){
@@ -3376,9 +3376,9 @@ UPnPMediaServer
 			
 		}else{
 			
-			if ( cont instanceof UPnPMediaServerContentDirectory.contentContainer ){
+			if ( cont instanceof UPnPMediaServerContentDirectory.CDContentContainer ){
 				
-				update_id = ((UPnPMediaServerContentDirectory.contentContainer)cont).getUpdateID();
+				update_id = ((UPnPMediaServerContentDirectory.CDContentContainer)cont).getUpdateID();
 			}
 			
 			if ( browseFlag.equals( "BrowseMetadata")){
@@ -3409,9 +3409,9 @@ UPnPMediaServer
 				
 				if ( ok ){
 					
-					contentContainer	container = (contentContainer)cont;
+					CDContentContainer	container = (CDContentContainer)cont;
 	
-					List<content>	children = container.getChildren();
+					List<CDContent>	children = container.getChildren();
 					
 						// todo: sort criteria
 					
@@ -3422,7 +3422,7 @@ UPnPMediaServer
 					
 					for (int i=0;i<children.size();i++){
 						
-						content	child = children.get(i);
+						CDContent	child = children.get(i);
 						
 						boolean vis = isVisible( child, az_filters, az_filter_args );
 						
@@ -3482,22 +3482,22 @@ UPnPMediaServer
 	
 	protected void
 	sortContent(
-		List<content>		content )
+		List<CDContent>		content )
 	{
 		final int		order 	= Integer.parseInt( sort_order.getValue());
 		final boolean 	asc		= sort_order_ascending.getValue();
 		
 		Collections.sort(
 			content,
-			new Comparator<content>()
+			new Comparator<CDContent>()
 			{
 				private Comparator<String> alpha_comp = plugin_interface.getUtilities().getFormatters().getAlphanumericComparator( true );
 				
 				@Override
 				public int
 				compare(
-					content o1, 
-					content o2 )
+					CDContent o1, 
+					CDContent o2 )
 				{
 					int	result = 0;
 					
@@ -3544,8 +3544,8 @@ UPnPMediaServer
 	
 	protected boolean
 	isVisible(
-		content						c,
-		List<ContentFilter>	filters,
+		CDContent					c,
+		List<ContentFilter>			filters,
 		Map<String,Object>			filter_args )
 	{
 		boolean	vis = false;
@@ -3556,9 +3556,9 @@ UPnPMediaServer
 			
 		}else{
 
-			if ( c instanceof contentItem ){
+			if ( c instanceof CDContentItem ){
 					
-				ContentFile acf = ((contentItem)c).getACF();
+				ContentFile acf = ((CDContentItem)c).getACF();
 				
 				for ( ContentFilter filter: filters ){
 					
@@ -3569,7 +3569,7 @@ UPnPMediaServer
 				}
 			}else{
 				
-				ContentDownload acd = ((contentContainer)c).getACD();
+				ContentDownload acd = ((CDContentContainer)c).getACD();
 				
 				if ( acd == null ){
 					
@@ -3720,7 +3720,7 @@ UPnPMediaServer
 			}
 		}
 				
-		UPnPMediaServerContentDirectory.contentItem item = content_directory.getContentFromFile( file );
+		UPnPMediaServerContentDirectory.CDContentItem item = content_directory.getContentFromFile( file );
 		
 		if ( item == null ){
 			
@@ -3832,7 +3832,7 @@ UPnPMediaServer
 	
 	protected void
 	contentContainerUpdated(
-		UPnPMediaServerContentDirectory.contentContainer		c )
+		UPnPMediaServerContentDirectory.CDContentContainer		c )
 	{
 		synchronized( events ){
 			
@@ -3954,7 +3954,7 @@ UPnPMediaServer
 			
 		while( it.hasNext()){
 			
-			UPnPMediaServerContentDirectory.contentContainer	container = (UPnPMediaServerContentDirectory.contentContainer)it.next();
+			UPnPMediaServerContentDirectory.CDContentContainer	container = (UPnPMediaServerContentDirectory.CDContentContainer)it.next();
 			
 			int	id 			= container.getID();
 			int	update_id	= container.getUpdateID();

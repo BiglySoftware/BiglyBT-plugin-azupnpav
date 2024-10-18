@@ -928,7 +928,7 @@ outer:
 									
 					url = URLDecoder.decode( url.substring(0,pos), "ISO8859-1" );
 					
-					UPnPMediaServerContentDirectory.contentItem	item			= null;
+					UPnPMediaServerContentDirectory.CDContentItem	item			= null;
 					
 					action_is_download = false;
 					
@@ -1065,7 +1065,7 @@ outer:
 			boolean											head,
 			String											http_version,
 			Map<String,String>								headers,
-			UPnPMediaServerContentDirectory.contentItem		content_item,
+			UPnPMediaServerContentDirectory.CDContentItem	content_item,
 			boolean											close_connection )
 		
 			throws Throwable
@@ -1494,7 +1494,7 @@ outer:
 		
 		protected void
 		writeBoilerPlate(
-			UPnPMediaServerContentDirectory.contentItem		item,
+			UPnPMediaServerContentDirectory.CDContentItem	item,
 			boolean											does_ranges,
 			boolean											close_connection )
 		{
@@ -1758,7 +1758,7 @@ outer:
 	protected class
 	overWriteMonitor
 	{
-		private UPnPMediaServerContentDirectory.contentItem		item;
+		private UPnPMediaServerContentDirectory.CDContentItem		item;
 		
 		
 		private long	last_update = SystemTime.getMonotonousTime();
@@ -1790,7 +1790,7 @@ outer:
 		
 		protected
 		overWriteMonitor(
-			UPnPMediaServerContentDirectory.contentItem		_item )
+			UPnPMediaServerContentDirectory.CDContentItem		_item )
 		{
 			item		= _item;
 		}

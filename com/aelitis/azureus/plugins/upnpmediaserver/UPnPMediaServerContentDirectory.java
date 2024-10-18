@@ -185,19 +185,19 @@ UPnPMediaServerContentDirectory
 	
 	private int		system_update_id	= random.nextInt( Integer.MAX_VALUE );
 
-	private Map<Integer,content>		content_map 		= new HashMap<>();
-	private Map<ResourceKey,content>	resourcekey_map 	= new HashMap<>();
+	private Map<Integer,CDContent>		content_map 		= new HashMap<>();
+	private Map<ResourceKey,CDContent>	resourcekey_map 	= new HashMap<>();
 
 	private Map<String,Long>			config;
 	private boolean						config_dirty;
 	
 	private Object					lock = new Object();
 	
-	private contentContainer		root_container;
-	private contentContainer		downloads_container;
-	private contentContainer		movies_container;
-	private contentContainer		music_container;
-	private contentContainer		pictures_container;
+	private CDContentContainer		root_container;
+	private CDContentContainer		downloads_container;
+	private CDContentContainer		movies_container;
+	private CDContentContainer		music_container;
+	private CDContentContainer		pictures_container;
 
 	protected
 	UPnPMediaServerContentDirectory(
@@ -207,15 +207,15 @@ UPnPMediaServerContentDirectory
 
 		ta_unique_name	= media_server.getPluginInterface().getTorrentManager().getPluginAttribute( "unique_name");
 		
-		root_container = new contentContainer( null, "BiglyBT" );
+		root_container = new CDContentContainer( null, "BiglyBT" );
 		
-		music_container 	= new contentContainer( root_container, "Music", "M" );
+		music_container 	= new CDContentContainer( root_container, "Music", "M" );
 				
-		pictures_container 	= new contentContainer( root_container, "Pictures", "P" );
+		pictures_container 	= new CDContentContainer( root_container, "Pictures", "P" );
 		
-		movies_container 	= new contentContainer( root_container, "Movies", "V" );
+		movies_container 	= new CDContentContainer( root_container, "Movies", "V" );
 		
-		downloads_container 	= new contentContainer( root_container, "Downloads" );
+		downloads_container 	= new CDContentContainer( root_container, "Downloads" );
 	}
 	
 	protected void
@@ -241,14 +241,14 @@ UPnPMediaServerContentDirectory
 						
 				String title = getUniqueName( download, hw, files[0].getFile().getName());
 				
-				contentItem	item = new contentItem( downloads_container, getACF( files[0]), hash, title );
+				CDContentItem	item = new CDContentItem( downloads_container, getACF( files[0]), hash, title );
 				
 				addToFilters( item );
 				
 			}else{
 				
-				contentContainer container = 
-					new contentContainer( 
+				CDContentContainer container = 
+					new CDContentContainer( 
 							downloads_container,
 							getACD( download ),
 							getUniqueName( download, hw, download.getName()));
@@ -286,7 +286,7 @@ UPnPMediaServerContentDirectory
 						title =  ( j + 1 ) + ". " + title;
 					}
 					
-					new contentItem( container, getACF( file ), hash, title );
+					new CDContentItem( container, getACF( file ), hash, title );
 				}
 				
 				addToFilters( container );
@@ -318,7 +318,7 @@ UPnPMediaServerContentDirectory
 					title = getUniqueName( null, new HashWrapper( hash ), file.getFile().getName());
 				}
 					
-				contentItem	item = new contentItem( downloads_container, content_file, hash, title );
+				CDContentItem	item = new CDContentItem( downloads_container, content_file, hash, title );
 								
 				addToFilters( item );
 				
@@ -347,7 +347,7 @@ UPnPMediaServerContentDirectory
 				
 				String unique_name = getUniqueName( null, hash, file.getFile().getName());
 											
-				content container = downloads_container.removeChild( unique_name );
+				CDContent container = downloads_container.removeChild( unique_name );
 	
 				removeUniqueName( hash );
 				
@@ -390,7 +390,7 @@ UPnPMediaServerContentDirectory
 				unique_name = getUniqueName( download, hash, download.getName());
 			}
 			
-			content container = downloads_container.removeChild( unique_name );
+			CDContent container = downloads_container.removeChild( unique_name );
 
 			removeUniqueName( hash );
 			
@@ -409,19 +409,19 @@ UPnPMediaServerContentDirectory
 	
 	private String
 	findPrimaryContentType(
-		content		con )
+		CDContent		con )
 	{
-		if ( con instanceof contentItem ){
+		if ( con instanceof CDContentItem ){
 			
-			return(((contentItem)con).getContentClass());
+			return(((CDContentItem)con).getContentClass());
 			
 		}else{
 	
 			String	type = CONTENT_UNKNOWN;
 			
-			contentContainer container = (contentContainer)con;
+			CDContentContainer container = (CDContentContainer)con;
 			
-			List<content> kids = container.getChildren();
+			List<CDContent> kids = container.getChildren();
 			
 			for (int i=0;i<kids.size();i++){
 				
@@ -449,7 +449,7 @@ UPnPMediaServerContentDirectory
 	
 	private void
 	addToFilters(
-		content		con )
+		CDContent		con )
 	{
 		String type = findPrimaryContentType( con );
 		
@@ -478,7 +478,7 @@ UPnPMediaServerContentDirectory
 					
 					for ( String cat_or_tag: entry ){
 						
-						contentContainer parent = null;
+						CDContentContainer parent = null;
 						
 						if ( type == CONTENT_VIDEO ){
 							
@@ -495,13 +495,13 @@ UPnPMediaServerContentDirectory
 										
 						if ( parent != null ){
 							
-							content node = null;
+							CDContent node = null;
 		
 							int		num = 0;
 							String	name;
 							
-							while( 	(! ( node instanceof contentContainer )) ||
-									((contentContainer)node).getACD() != null ){
+							while( 	(! ( node instanceof CDContentContainer )) ||
+									((CDContentContainer)node).getACD() != null ){
 																			
 								name = num++==0?cat_or_tag:( num + ". " + cat_or_tag );
 									
@@ -509,11 +509,11 @@ UPnPMediaServerContentDirectory
 								
 								if ( node == null ){
 									
-									node = new contentContainer( parent, name );
+									node = new CDContentContainer( parent, name );
 								}
 							}
 							
-							((contentContainer)node).addLink( con );
+							((CDContentContainer)node).addLink( con );
 						}
 					}
 				}
@@ -537,23 +537,23 @@ UPnPMediaServerContentDirectory
 	
 	private void
 	removeFromFilters(
-		content		con )
+		CDContent		con )
 	{
-		contentContainer[] parents = { movies_container, pictures_container, music_container };
+		CDContentContainer[] parents = { movies_container, pictures_container, music_container };
 		
-		for ( contentContainer parent: parents ){
+		for ( CDContentContainer parent: parents ){
 			
 			parent.removeLink( con.getName());
 			
 			if ( media_server.useCategories() || media_server.useTags()){
 				
-				List<content> kids = parent.getChildren();
+				List<CDContent> kids = parent.getChildren();
 				
-				for ( content k: kids ){
+				for ( CDContent k: kids ){
 					
-					if ( k instanceof contentContainer && ((contentContainer)k).getACD() == null ){
+					if ( k instanceof CDContentContainer && ((CDContentContainer)k).getACD() == null ){
 						
-						((contentContainer)k).removeLink( con.getName());
+						((CDContentContainer)k).removeLink( con.getName());
 					}
 				}
 			}
@@ -575,31 +575,10 @@ UPnPMediaServerContentDirectory
 	
 	protected boolean
 	contentChanged(
-		contentContainer	content,
-		ContentFile acf )
+		CDContentContainer	content,
+		ContentFile 		acf )
 	{			
-		for ( content c: content.getChildren()){
-			
-			if ( c instanceof contentItem ){
-				
-				if (((contentItem)c).getACF() == acf ){
-				
-					removeFromFilters( c );
-					
-					addToFilters( c );
-					
-					return( true );
-				}		
-			}else{
-				
-				if ( contentChanged((contentContainer)c, acf )){
-					
-					return( true );
-				}
-			}
-		}
-		
-		return( false );
+		return( content.contentChanged( acf ));
 	}
 	
 	private Map<HashWrapper,String> unique_name_map	= new HashMap<HashWrapper, String>();
@@ -675,7 +654,7 @@ UPnPMediaServerContentDirectory
 		media_server.ensureStarted();
 	}
 	
-	protected contentContainer
+	protected CDContentContainer
 	getRootContainer()
 	{
 		ensureStarted();
@@ -683,7 +662,7 @@ UPnPMediaServerContentDirectory
 		return( root_container );
 	}
 	
-	protected contentContainer
+	protected CDContentContainer
 	getMoviesContainer()
 	{
 		ensureStarted();
@@ -691,7 +670,7 @@ UPnPMediaServerContentDirectory
 		return( movies_container );
 	}
 	
-	protected contentContainer
+	protected CDContentContainer
 	getMusicContainer()
 	{
 		ensureStarted();
@@ -699,7 +678,7 @@ UPnPMediaServerContentDirectory
 		return( music_container );
 	}
 	
-	protected contentContainer
+	protected CDContentContainer
 	getPicturesContainer()
 	{
 		ensureStarted();
@@ -707,7 +686,7 @@ UPnPMediaServerContentDirectory
 		return( pictures_container );
 	}
 	
-	protected content
+	protected CDContent
 	getContentFromID(
 		int		id )
 	{
@@ -719,7 +698,7 @@ UPnPMediaServerContentDirectory
 		}
 	}
 	
-	protected contentContainer
+	protected CDContentContainer
 	getContainerFromID(
 		int		id )
 	{
@@ -727,18 +706,18 @@ UPnPMediaServerContentDirectory
 		
 		synchronized( content_map ){
 			
-			content c = content_map.get( new Integer( id ));
+			CDContent c = content_map.get( new Integer( id ));
 			
-			if ( c instanceof contentContainer ){
+			if ( c instanceof CDContentContainer ){
 				
-				return((contentContainer)c);
+				return((CDContentContainer)c);
 			}
 		}
 		
 		return( null );
 	}
 		
-	protected contentItem
+	protected CDContentItem
 	getContentFromResourceIDStr(
 		String		id_str )
 	{
@@ -759,11 +738,11 @@ UPnPMediaServerContentDirectory
 				byte[]	hash	= ByteFormatter.decodeString( bits[0] );
 				int		index	= Integer.parseInt( bits[1] );
 				
-				content content = resourcekey_map.get( new ResourceKey( hash, index ));
+				CDContent content = resourcekey_map.get( new ResourceKey( hash, index ));
 				
-				if ( content instanceof contentItem ) {
+				if ( content instanceof CDContentItem ) {
 					
-					return((contentItem)content );
+					return((CDContentItem)content );
 				}
 			}catch( Throwable e ){
 				
@@ -773,23 +752,23 @@ UPnPMediaServerContentDirectory
 		return null;
 	}
 	
-	protected contentItem
+	protected CDContentItem
 	getContentFromResourceID(
 		ResourceID		id )
 	{
 		ensureStarted();
 
-		content content = resourcekey_map.get(id.getKey());
+		CDContent content = resourcekey_map.get(id.getKey());
 		
-		if ( content instanceof contentItem ) {
+		if ( content instanceof CDContentItem ) {
 			
-			return((contentItem)content );
+			return((CDContentItem)content );
 		}
 
 		return null;
 	}
 	
-	protected contentItem
+	protected CDContentItem
 	getContentFromFile(
 		DiskManagerFileInfo		file )
 	{	
@@ -798,13 +777,13 @@ UPnPMediaServerContentDirectory
 		return( getContentFromResourceID( id ));
 	}
 	
-	protected contentItem
+	protected CDContentItem
 	getContentFromHash(
 		byte[]		hash )
 	{
 		ensureStarted();
 		
-		contentItem	item = getExistingContentFromHash( hash );
+		CDContentItem	item = getExistingContentFromHash( hash );
 		
 		if ( item == null ){
 			
@@ -973,7 +952,7 @@ UPnPMediaServerContentDirectory
 				});
 	}
 	
-	protected contentItem
+	protected CDContentItem
 	getExistingContentFromHash(
 		byte[]		hash )
 	{
@@ -982,7 +961,7 @@ UPnPMediaServerContentDirectory
 		return( getExistingContentFromHashAndFileIndex( hash, 0 ));
 	}
 	
-	protected contentItem
+	protected CDContentItem
 	getExistingContentFromHashAndFileIndex(
 		byte[]		hash,
 		int			file_index )
@@ -991,11 +970,11 @@ UPnPMediaServerContentDirectory
 		
 		ResourceKey resourceKey = getContentResourceKey( hash, file_index );
 		
-		content content = resourcekey_map.get(resourceKey);
+		CDContent content = resourcekey_map.get(resourceKey);
 		
-		if ( content instanceof contentItem ){ 
+		if ( content instanceof CDContentItem ){ 
 			
-			return (contentItem) content;
+			return (CDContentItem) content;
 		}
 
 		return( null );
@@ -1003,17 +982,17 @@ UPnPMediaServerContentDirectory
 	
 	protected String
 	getDIDL(
-		content						con,
+		CDContent						con,
 		String						host,
 		int							client_type,
 		List<ContentFilter>	filters,
 		Map<String,Object>			filter_args )	
 	{
-		if ( con instanceof contentContainer ){
+		if ( con instanceof CDContentContainer ){
 			
-			contentContainer	child_container = (contentContainer)con;
+			CDContentContainer	child_container = (CDContentContainer)con;
 			
-			List<content> kids = child_container.getChildren();
+			List<CDContent> kids = child_container.getChildren();
 			
 			int		child_count;
 			long	storage_used;
@@ -1027,7 +1006,7 @@ UPnPMediaServerContentDirectory
 				child_count 	= 0;
 				storage_used	= 0;
 				
-				for ( content kid: kids ){
+				for ( CDContent kid: kids ){
 					
 					if ( media_server.isVisible( kid, filters, filter_args )){
 						
@@ -1052,7 +1031,7 @@ UPnPMediaServerContentDirectory
 			return didl;
 		
 		}else{
-			contentItem	child_item = (contentItem)con;
+			CDContentItem	child_item = (CDContentItem)con;
 			
 			return( 
 				"<item id=\"" + child_item.getID() + "\" parentID=\"" + child_item.getParentID() + "\" restricted=\"false\">" +
@@ -1229,19 +1208,19 @@ UPnPMediaServerContentDirectory
 	protected void
 	addPersistentContainerIDs(
 		Map<String,Long>		map,
-		contentContainer		container )
+		CDContentContainer		container )
 	{
 		String	full_name  = container.getFullName( container.getName());
 		
 		map.put( full_name, new Long(container.getID()));
 		
-		List<content> kids = container.getChildren();
+		List<CDContent> kids = container.getChildren();
 		
-		for ( content kid: kids ){
+		for ( CDContent kid: kids ){
 			
-			if ( kid instanceof contentContainer ){
+			if ( kid instanceof CDContentContainer ){
 				
-				addPersistentContainerIDs( map, (contentContainer)kid );
+				addPersistentContainerIDs( map, (CDContentContainer)kid );
 			}
 		}
 	}
@@ -1273,22 +1252,22 @@ UPnPMediaServerContentDirectory
 	}
 	
 	protected abstract class
-	content
+	CDContent
 		implements Cloneable
 	{
 		private int						id;
-		private contentContainer		parent;
+		private CDContentContainer		parent;
 		
 		protected
-		content(
-			contentContainer		_parent )
+		CDContent(
+			CDContentContainer		_parent )
 		{
 			this( _parent, null );
 		}
 			
 		protected
-		content(
-			contentContainer		_parent,
+		CDContent(
+			CDContentContainer		_parent,
 			String					_name )
 		{
 			parent	= _parent;
@@ -1355,7 +1334,7 @@ UPnPMediaServerContentDirectory
 		{
 			String	full_name = name;
 				
-			contentContainer current = parent;
+			CDContentContainer current = parent;
 				
 			while( current != null ){
 				
@@ -1389,15 +1368,15 @@ UPnPMediaServerContentDirectory
 		}
 		*/
 		
-		protected contentContainer
+		protected CDContentContainer
 		getParent()
 		{
 			return( parent );
 		}
 
-		protected abstract content
+		protected abstract CDContent
 		getCopy(
-			contentContainer	parent );
+			CDContentContainer	parent );
 
 		protected abstract String
 		getName();
@@ -1444,18 +1423,19 @@ UPnPMediaServerContentDirectory
 	}
 	
 	protected class
-	contentContainer
-		extends content
+	CDContentContainer
+		extends CDContent
 	{
 		private ContentDownload download;
 		private String					name;
-		private List<content>			children 	= new ArrayList<content>();
+		private Map<String,CDContent>		children 	= new HashMap<>();
+		
 		private int						update_id	= random.nextInt( Integer.MAX_VALUE );
 		private String mediaClass;
 		
 		protected
-		contentContainer(
-			contentContainer	_parent,
+		CDContentContainer(
+			CDContentContainer	_parent,
 			String				_name )
 		{
 			super( _parent, _name );
@@ -1469,8 +1449,8 @@ UPnPMediaServerContentDirectory
 		}
 		
 		protected
-		contentContainer(
-			contentContainer			_parent,
+		CDContentContainer(
+			CDContentContainer			_parent,
 			ContentDownload _download,
 			String						_name )
 		{		
@@ -1486,8 +1466,8 @@ UPnPMediaServerContentDirectory
 		}
 		
 		public 
-		contentContainer(
-			contentContainer _parent, 
+		CDContentContainer(
+			CDContentContainer _parent, 
 			String			_name,
 			String			_mediaClass) 
 		{
@@ -1503,15 +1483,15 @@ UPnPMediaServerContentDirectory
 		}
 		
 		@Override
-		protected content
+		protected CDContent
 		getCopy(
-			contentContainer	parent )
+			CDContentContainer	parent )
 		{
-			contentContainer copy = new contentContainer( parent, download, name );
+			CDContentContainer copy = new CDContentContainer( parent, download, name );
 			
-			for (int i=0;i<children.size();i++){
+			for ( CDContent c: children.values()){
 				
-				children.get(i).getCopy( copy );
+				c.getCopy( copy );
 			}
 			
 			return( copy );
@@ -1519,7 +1499,7 @@ UPnPMediaServerContentDirectory
 		
 		protected void
 		addLink(
-			content		child )
+			CDContent		child )
 		{
 			//logger.log( "Container: adding link '" + child.getName() + "' to '" + getName() + "'" );
 				
@@ -1528,30 +1508,21 @@ UPnPMediaServerContentDirectory
 			updated();
 		}
 		
-		protected content
+		protected CDContent
 		removeLink(
 			String	child_name )
 		{
 			//logger.log( "Container: removing link '" + child_name + "' from '" + getName() + "'" );
-
-			Iterator<content>	it = children.iterator();
-				
-			while( it.hasNext()){
-				
-				content	con = it.next();
-				
-				String	c_name = con.getName();
-				
-				if ( c_name.equals( child_name )){
-						
-					it.remove();
-						
-					updated();
-						
-					con.deleted( true );
+			
+			CDContent	con = children.remove( child_name );
+			
+			if ( con != null ){
 					
-					return( con );
-				}
+				updated();
+					
+				con.deleted( true );
+				
+				return( con );
 			}
 			
 			return( null );
@@ -1559,39 +1530,33 @@ UPnPMediaServerContentDirectory
 		
 		protected void
 		addChild(
-			content		child )
+			CDContent		child )
 		{
 			//logger.log( "Container: adding child '" + child.getName() + "' to '" + getName() + "'" );
 						
-			children.add( child );
+			if ( children.put( child.getName(), child ) != null ){
+				
+				Debug.out( "child " + child.getName() + " already exists in " + getName());
+			}
 			
 			updated();
 		}
 		
-		protected content
+		protected CDContent
 		removeChild(
 			String	child_name )
 		{
 			//logger.log( "Container: removing child '" + child_name + "' from '" + getName() + "'" );
 
-			Iterator<content>	it = children.iterator();
-				
-			while( it.hasNext()){
-				
-				content	con = it.next();
-				
-				String	c_name = con.getName();
-				
-				if ( c_name.equals( child_name )){
-						
-					it.remove();
-						
-					updated();
-						
-					con.deleted( false );
+			CDContent	con = children.remove( child_name );
+							
+			if ( con != null ){
+											
+				updated();
 					
-					return( con );
-				}
+				con.deleted( false );
+				
+				return( con );
 			}
 			
 			log( "    child not found" );
@@ -1599,25 +1564,11 @@ UPnPMediaServerContentDirectory
 			return( null );
 		}
 		
-		protected content
+		protected CDContent
 		getChild(
 			String	child_name )
 		{
-			Iterator<content>	it = children.iterator();
-			
-			while( it.hasNext()){
-				
-				content	con = it.next();
-				
-				String	c_name = con.getName();
-				
-				if ( c_name.equals( child_name )){
-
-					return( con );
-				}
-			}
-			
-			return( null );
+			return( children.get( child_name ));
 		}
 		
 		protected void
@@ -1670,13 +1621,9 @@ UPnPMediaServerContentDirectory
 				}
 			}
 			
-			Iterator<content>	it = children.iterator();
-			
-			while( it.hasNext()){
-
-				content	con = it.next();
+			for ( CDContent c: children.values()){
 				
-				con.invalidate();
+				c.invalidate();
 			}
 		}
 		
@@ -1687,11 +1634,9 @@ UPnPMediaServerContentDirectory
 		{
 			super.deleted( is_link );
 			
-			Iterator<content>	it = children.iterator();
-			
-			while( it.hasNext()){
+			for ( CDContent c: children.values()){
 
-				it.next().deleted( is_link );
+				c.deleted( is_link );
 			}
 		}
 		
@@ -1709,10 +1654,10 @@ UPnPMediaServerContentDirectory
 			return( CONTENT_CONTAINER );
 		}
 		
-		protected List<content>
+		protected List<CDContent>
 		getChildren()
 		{
-			return( children );
+			return(new ArrayList<>( children.values()));
 		}
 		
 		protected int
@@ -1727,16 +1672,40 @@ UPnPMediaServerContentDirectory
 		{
 			long	res = 0;
 			
-			Iterator<content>	it = children.iterator();
-			
-			while( it.hasNext()){
-
-				content	con = it.next();
+			for ( CDContent c: children.values()){
 				
-				res += con.getStorageUsed();
+				res += c.getStorageUsed();
 			}
 			
 			return( res );
+		}
+		
+		protected boolean
+		contentChanged(
+			ContentFile acf )
+		{			
+			for ( CDContent c: children.values()){
+				
+				if ( c instanceof CDContentItem ){
+					
+					if (((CDContentItem)c).getACF() == acf ){
+					
+						removeFromFilters( c );
+						
+						addToFilters( c );
+						
+						return( true );
+					}		
+				}else{
+					
+					if (((CDContentContainer)c).contentChanged( acf )){
+						
+						return( true );
+					}
+				}
+			}
+			
+			return( false );
 		}
 		
 		@Override
@@ -1748,7 +1717,7 @@ UPnPMediaServerContentDirectory
 				return( 0 );
 			}
 			
-			return( children.get(0).getDateMillis());
+			return( children.values().iterator().next().getDateMillis());
 		}
 		
 		@Override
@@ -1760,7 +1729,7 @@ UPnPMediaServerContentDirectory
 				return( new String[0] );
 			}
 			
-			return( children.get(0).getCategories());
+			return( children.values().iterator().next().getCategories());
 		}
 		
 		@Override
@@ -1772,7 +1741,7 @@ UPnPMediaServerContentDirectory
 				return( new String[0] );
 			}
 			
-			return( children.get(0).getTags());
+			return( children.values().iterator().next().getTags());
 		}
 		
 		@Override
@@ -1784,20 +1753,16 @@ UPnPMediaServerContentDirectory
 			
 			indent += "    ";
 			
-			Iterator<content>	it = children.iterator();
-			
-			while( it.hasNext()){
+			for ( CDContent c: children.values()){
 
-				content	con = it.next();
-
-				con.print( indent );
+				c.print( indent );
 			}
 		}
 	}
 	
 	protected class
-	contentItem
-		extends content
+	CDContentItem
+		extends CDContent
 		implements Cloneable
 	{
 		private final ContentFile 	content_file;
@@ -1811,8 +1776,8 @@ UPnPMediaServerContentDirectory
 		private ResourceKey 	resource_key;
 		
 		protected 
-		contentItem(
-			contentContainer		_parent,
+		CDContentItem(
+			CDContentContainer		_parent,
 			ContentFile 			_content_file,
 			byte[]					_hash,
 			String					_title )
@@ -1863,12 +1828,12 @@ UPnPMediaServerContentDirectory
 		}
 		
 		@Override
-		protected content
+		protected CDContent
 		getCopy(
-			contentContainer	parent )
+			CDContentContainer	parent )
 		{
 			try{
-				content res = (content)clone();
+				CDContent res = (CDContent)clone();
 				
 				res.parent = parent;
 				

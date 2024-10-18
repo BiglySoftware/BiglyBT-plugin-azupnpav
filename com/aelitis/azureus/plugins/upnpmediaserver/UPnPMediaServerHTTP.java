@@ -172,7 +172,7 @@ UPnPMediaServerHTTP
 			
 		}else if ( args.get( "iid" ) != null ){
 			
-			contentItem item = (contentItem)plugin.getContentDirectory().getContentFromID( Integer.parseInt(args.get( "iid" )));
+			CDContentItem item = (CDContentItem)plugin.getContentDirectory().getContentFromID( Integer.parseInt(args.get( "iid" )));
 			
 			if ( item == null ){
 				
@@ -213,7 +213,7 @@ UPnPMediaServerHTTP
 			
 			UPnPMediaServerContentDirectory content_directory = plugin.getContentDirectory();
 			
-			contentContainer	container = null;
+			CDContentContainer	container = null;
 			
 			if ( container_id != null ){
 			
@@ -232,17 +232,17 @@ UPnPMediaServerHTTP
 			
 			pw.println(escape( container.getName()));
 			
-			List<content> kids = container.getChildren();
+			List<CDContent> kids = container.getChildren();
 			
 			plugin.sortContent( kids );
 			
 			Map<String,Object> filter_args = new HashMap<String, Object>();
 
-			for ( content kid: kids ){
+			for ( CDContent kid: kids ){
 				
 				if ( plugin.isVisible( kid, filters, filter_args )){
 					
-					if ( kid instanceof contentContainer ){
+					if ( kid instanceof CDContentContainer ){
 						
 						String kid_url = "/basic?cid=" + kid.getID();
 						
@@ -250,7 +250,7 @@ UPnPMediaServerHTTP
 						
 					}else{
 						
-						contentItem item = (UPnPMediaServerContentDirectory.contentItem)kid;
+						CDContentItem item = (UPnPMediaServerContentDirectory.CDContentItem)kid;
 							
 						String	name = item.getDisplayTitle();
 						
