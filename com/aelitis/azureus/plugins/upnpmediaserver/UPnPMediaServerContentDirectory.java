@@ -39,7 +39,6 @@ import java.util.Set;
 
 import com.biglybt.core.content.*;
 import com.biglybt.core.internat.MessageText;
-import com.biglybt.core.torrent.TOTorrent;
 import com.biglybt.core.util.*;
 import com.biglybt.pif.disk.DiskManagerFileInfo;
 import com.biglybt.pif.download.Download;
@@ -47,7 +46,6 @@ import com.biglybt.pif.download.DownloadException;
 import com.biglybt.pif.download.DownloadManager;
 import com.biglybt.pif.torrent.Torrent;
 import com.biglybt.pif.torrent.TorrentAttribute;
-import com.biglybt.pifimpl.local.PluginCoreUtils;
 import com.biglybt.core.content.ContentDirectory;
 
 
@@ -1787,7 +1785,7 @@ UPnPMediaServerContentDirectory
 			try{
 				content_file	= _content_file;
 				hash			= _hash;
-				title			= StringInterner.intern( _title );
+				title			= _title;
 				
 				DiskManagerFileInfo		file = content_file.getFile();
 										
