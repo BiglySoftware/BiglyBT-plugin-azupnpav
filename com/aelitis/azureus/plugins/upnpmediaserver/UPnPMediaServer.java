@@ -3006,6 +3006,11 @@ UPnPMediaServer
 						return;
 					}
 					
+					if ( download.getFlag( Download.FLAG_METADATA_DOWNLOAD )){
+						
+						return;
+					}
+					
 					content_directory.addContent( download );
 				}
 				
@@ -3019,6 +3024,11 @@ UPnPMediaServer
 						return;
 					}
 					
+					if ( download.getFlag( Download.FLAG_METADATA_DOWNLOAD )){
+						
+						return;
+					}
+
 					content_directory.removeContent( download );
 				}
 			};
