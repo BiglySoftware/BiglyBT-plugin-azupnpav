@@ -2391,8 +2391,8 @@ UPnPMediaServer
 	
 				ssdp = UPnPFactory.getSSDP(
 									adapter, 
-									UPnPSSDP.SSDP_GROUP_ADDRESS, 
-									UPnPSSDP.SSDP_GROUP_PORT, 
+									UPnPSSDP.SSDP_GROUP_ADDRESS_V4,
+									UPnPSSDP.SSDP_GROUP_ADDRESS_V6,									UPnPSSDP.SSDP_GROUP_PORT, 
 									0, 
 									null );
 	
