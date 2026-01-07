@@ -209,7 +209,8 @@ UPnPMediaServer
 	private UTTimer					timer3;
 	private UTTimerEvent 			timer3_event;
 	private DownloadManagerListener	dm_listener;
-	private TrackerWebContext		ssdp_web_context;
+	
+	private List<TrackerWebContext>		ssdp_web_contexts = new ArrayList<>();
 		
 	private byte[]					BLANK_PASSWORD;
 
@@ -1567,9 +1568,9 @@ UPnPMediaServer
 				plugin_interface.getDownloadManager().removeListener( dm_listener );
 			}
 			
-			if ( ssdp_web_context != null ){
+			for ( TrackerWebContext wc: ssdp_web_contexts ){
 				
-				ssdp_web_context.destroy();
+				wc.destroy();
 			}
 			
 			if ( http_server != null ){
@@ -2396,9 +2397,10 @@ UPnPMediaServer
 									0, 
 									null );
 	
-				int	ssdp_port = ssdp.getControlPort();
+				int	v4_ssdp_port = ssdp.getControlPort( true );
+				int	v6_ssdp_port = ssdp.getControlPort( false );
 			
-				logger.log( "SSDP port: " + ssdp_port );
+				logger.log( "SSDP port: " + v4_ssdp_port + "/" + v6_ssdp_port );
 				
 				createContent();
 				
@@ -2410,310 +2412,326 @@ UPnPMediaServer
 					return;
 				}
 				
-				ssdp_web_context = 
+				if ( v4_ssdp_port > 0 ){
+				
+					ssdp_web_contexts.add(
 						plugin_interface.getTracker().createWebContext(
-								"UPnP Media Server: SSDP",
-								ssdp_port,
-								Tracker.PR_HTTP );
+								"UPnP Media Server: SSDP IPv4",
+								v4_ssdp_port,
+								Tracker.PR_HTTP ));
+				}
 				
-				ssdp_web_context.addAuthenticationListener(
-					new TrackerAuthenticationAdapter()
-					{
-						@Override
-						public boolean
-						authenticate(
-							String		headers,
-							URL			resource,
-							String		user,
-							String		password )
-						{
-							String	client = getHeaderField( headers, "X-Real-IP" );
-							
-							if ( authContentPort( client )){
-							
-								return( doContentAuth( client, user, password ));
-							}
-							
-							return( true );
-						}
-						
-						private String
-						getHeaderField(
-							String	headers,
-							String	field )
-						{
-							String lc_headers = headers.toLowerCase();
-							
-							int p1 = lc_headers.indexOf( field.toLowerCase() + ":" );
-							
-							if ( p1 != -1 ){
-							
-								int	p2 = lc_headers.indexOf( '\n', p1 );
-								
-								if ( p2 != -1 ){
-									
-									return( headers.substring( p1+field.length()+1, p2 ).trim());
-								}
-							}
-							
-							return( null );
-						}
-					});
+				if ( v6_ssdp_port > 0 && v6_ssdp_port != v4_ssdp_port ){
+					
+					ssdp_web_contexts.add(
+							plugin_interface.getTracker().createWebContext(
+									"UPnP Media Server: SSDP IPv6",
+									v6_ssdp_port,
+									Tracker.PR_HTTP, 
+									InetAddress.getByName( "::0" )));
+				}
 				
-				ssdp_web_context.addPageGenerator(
-					new TrackerWebPageGenerator()
-					{
-						@Override
-						public boolean
-						generate(
-							TrackerWebPageRequest		request,
-							TrackerWebPageResponse		response )
-						
-							throws IOException
+				for ( TrackerWebContext wc: ssdp_web_contexts ){
+					
+					wc.addAuthenticationListener(
+						new TrackerAuthenticationAdapter()
 						{
-							List<ContentFilter> filters = receivedBrowse( request, false );
-							
-							String	url = request.getURL();
-							
-							String	header	= request.getHeader();
-														
-							Map		headers = request.getHeaders();
-														
-							String	action = (String)headers.get( "soapaction" );					
-	
-							if ( 	url.equals( "/ConnectionManager/Event" )||
-									url.equals( "/ContentDirectory/Event" )){					
-									
-								// System.out.println( request.getHeader());
-	
-								Map	headers_out = new HashMap();
+							@Override
+							public boolean
+							authenticate(
+								String		headers,
+								URL			resource,
+								String		user,
+								String		password )
+							{
+								String	client = getHeaderField( headers, "X-Real-IP" );
 								
-								String result = 
-									processEvent( 
-										url.equals( "/ContentDirectory/Event" ),
-										request.getClientAddress2(),
-										headers_out,	
-										header.startsWith( "SUBSCRIBE" ),
-										(String)headers.get( "callback" ),
-										(String)headers.get( "sid" ),
-										(String)headers.get( "timeout" ));
-										
-								response.setHeader( "SERVER", getServerName());
+								if ( authContentPort( client )){
 								
-								Iterator	it = headers_out.keySet().iterator();
-								
-								while( it.hasNext()){
-									
-									String	name 	= (String)it.next();
-									String	value	= (String)headers_out.get(name);
-									
-									response.setHeader( name, value );
+									return( doContentAuth( client, user, password ));
 								}
 								
-								response.useStream( "xml", new ByteArrayInputStream( result.getBytes( "UTF-8" )));
-	
 								return( true );
+							}
+							
+							private String
+							getHeaderField(
+								String	headers,
+								String	field )
+							{
+								String lc_headers = headers.toLowerCase();
+								
+								int p1 = lc_headers.indexOf( field.toLowerCase() + ":" );
+								
+								if ( p1 != -1 ){
+								
+									int	p2 = lc_headers.indexOf( '\n', p1 );
+									
+									if ( p2 != -1 ){
+										
+										return( headers.substring( p1+field.length()+1, p2 ).trim());
+									}
+								}
+								
+								return( null );
+							}
+						});
+					
+					wc.addPageGenerator(
+						new TrackerWebPageGenerator()
+						{
+							@Override
+							public boolean
+							generate(
+								TrackerWebPageRequest		request,
+								TrackerWebPageResponse		response )
+							
+								throws IOException
+							{
+								List<ContentFilter> filters = receivedBrowse( request, false );
+								
+								String	url = request.getURL();
+								
+								String	header	= request.getHeader();
 															
-							}else if ( action == null ){
-								
-									// unfortunately java lets getSourceAsStream escape from the
-									// package hierarchy and onto the file system, at least when
-									// loading the class from FS instead of .jar
-								
-									// first we don't support ..
-								
-								url = url.trim();
-								
-								if ( url.indexOf( ".." ) == -1 && !url.endsWith( "/" )){
-								
-										// second we don't support nested resources
-									
-									int	 pos = url.lastIndexOf("/");
-									
-									if ( pos != -1 ){
+								Map		headers = request.getHeaders();
+															
+								String	action = (String)headers.get( "soapaction" );					
+		
+								if ( 	url.equals( "/ConnectionManager/Event" )||
+										url.equals( "/ContentDirectory/Event" )){					
 										
-										url = url.substring( pos );
-									}
+									// System.out.println( request.getHeader());
+		
+									Map	headers_out = new HashMap();
 									
-									String UA = (String)headers.get( "user-agent" );
-									
-									if ( UA != null && UA.toLowerCase().startsWith( "xbox" )){
-										
-										url = url.replaceAll( "RootDevice", "RootDeviceXbox" );
-									}
-									
-									String AV_Client_Info = (String)headers.get( "x-av-client-info" );
-									
-										// hack to drop in black-background icons for bravia and sony blu-rays
-									
-									if ( AV_Client_Info != null ){
-										
-										AV_Client_Info = AV_Client_Info.toLowerCase();
-										
-										if ( 	AV_Client_Info.contains( "bravia" ) ||
-												( AV_Client_Info.contains( "sony" ) && AV_Client_Info.contains( "blu-ray" ))){
-														
-											if ( url.endsWith( ".jpg" )){
+									String result = 
+										processEvent( 
+											url.equals( "/ContentDirectory/Event" ),
+											request.getClientAddress2(),
+											headers_out,	
+											header.startsWith( "SUBSCRIBE" ),
+											(String)headers.get( "callback" ),
+											(String)headers.get( "sid" ),
+											(String)headers.get( "timeout" ));
 											
-												url = url.substring( 0, url.length()-4 ) + "b.jpg";
+									response.setHeader( "SERVER", getServerName());
+									
+									Iterator	it = headers_out.keySet().iterator();
+									
+									while( it.hasNext()){
+										
+										String	name 	= (String)it.next();
+										String	value	= (String)headers_out.get(name);
+										
+										response.setHeader( name, value );
+									}
+									
+									response.useStream( "xml", new ByteArrayInputStream( result.getBytes( "UTF-8" )));
+		
+									return( true );
+																
+								}else if ( action == null ){
+									
+										// unfortunately java lets getSourceAsStream escape from the
+										// package hierarchy and onto the file system, at least when
+										// loading the class from FS instead of .jar
+									
+										// first we don't support ..
+									
+									url = url.trim();
+									
+									if ( url.indexOf( ".." ) == -1 && !url.endsWith( "/" )){
+									
+											// second we don't support nested resources
+										
+										int	 pos = url.lastIndexOf("/");
+										
+										if ( pos != -1 ){
+											
+											url = url.substring( pos );
+										}
+										
+										String UA = (String)headers.get( "user-agent" );
+										
+										if ( UA != null && UA.toLowerCase().startsWith( "xbox" )){
+											
+											url = url.replaceAll( "RootDevice", "RootDeviceXbox" );
+										}
+										
+										String AV_Client_Info = (String)headers.get( "x-av-client-info" );
+										
+											// hack to drop in black-background icons for bravia and sony blu-rays
+										
+										if ( AV_Client_Info != null ){
+											
+											AV_Client_Info = AV_Client_Info.toLowerCase();
+											
+											if ( 	AV_Client_Info.contains( "bravia" ) ||
+													( AV_Client_Info.contains( "sony" ) && AV_Client_Info.contains( "blu-ray" ))){
+															
+												if ( url.endsWith( ".jpg" )){
+												
+													url = url.substring( 0, url.length()-4 ) + "b.jpg";
+												}
 											}
 										}
-									}
-								
-									String resource = "/com/aelitis/azureus/plugins/upnpmediaserver/resources" + url;
-						
-									InputStream stream = getClass().getResourceAsStream( resource );
 									
-									if ( stream != null ){
-																				
-										try{
-											if ( url.startsWith( "/RootDevice" )){
-												
-												byte[]	buffer = new byte[1024];
-												
-												String	content = "";
-												
-												while( true ){
+										String resource = "/com/aelitis/azureus/plugins/upnpmediaserver/resources" + url;
+							
+										InputStream stream = getClass().getResourceAsStream( resource );
+										
+										if ( stream != null ){
+																					
+											try{
+												if ( url.startsWith( "/RootDevice" )){
 													
-													int	len = stream.read( buffer );
+													byte[]	buffer = new byte[1024];
 													
-													if ( len <= 0 ){
+													String	content = "";
+													
+													while( true ){
 														
-														break;
+														int	len = stream.read( buffer );
+														
+														if ( len <= 0 ){
+															
+															break;
+														}
+														
+														content += new String( buffer, 0, len, "UTF-8" );
 													}
 													
-													content += new String( buffer, 0, len, "UTF-8" );
+													content = content.replaceAll( "%UUID%", Matcher.quoteReplacement(UUID_rootdevice) );
+													content = content.replaceAll( "%SERVICENAME%", Matcher.quoteReplacement(service_name) );
+													
+													stream.close();
+													
+													stream = new ByteArrayInputStream( content.getBytes( "UTF-8" ));
 												}
 												
-												content = content.replaceAll( "%UUID%", Matcher.quoteReplacement(UUID_rootdevice) );
-												content = content.replaceAll( "%SERVICENAME%", Matcher.quoteReplacement(service_name) );
-												
-												stream.close();
-												
-												stream = new ByteArrayInputStream( content.getBytes( "UTF-8" ));
-											}
+												String ext = FileUtil.getExtension(resource);
+												response.useStream( ext.length() <= 1 ? "xml" : ext.substring(1), stream );
 											
-											String ext = FileUtil.getExtension(resource);
-											response.useStream( ext.length() <= 1 ? "xml" : ext.substring(1), stream );
-										
-											return( true );
-											
-										}finally{
+												return( true );
 												
-											stream.close();
-										}
-									}
-								}
-								
-								String 	temp = header.replaceAll( "\r", "\\\\r" ).replaceAll( "\n", "\\\\n" );
-
-								logger.log( "HTTP: no match for " + url );
-								logger.log( "    header: " + temp );
-								logger.log( "    decoded: " + headers );
-								
-								return( false );
-								
-							}else{
+											}finally{
 													
-								String	host = (String)headers.get( "host" );
-								
-								if ( host == null ){
-									
-									host = getLocalIP();
-									
-								}else{
-									
-									int	pos = host.indexOf(':');
-									
-									if ( pos != -1 ){
-										
-										host	= host.substring(0,pos);
-									}
-									
-									host	= host.trim();
-								}
-								
-								String	client = (String)headers.get( "user-agent" );
-								
-								if ( client == null ){
-									
-									client = request.getClientAddress();
-									
-								}else{
-									
-									client = client + ":" + request.getClientAddress();
-								}
-								
-								try{
-										// Philips steamium sends invalid XML (trailing 0 byte screws the parser) so
-										// sanitise it here. Note it has to be in utf-8 as this is part of the UPnP 
-										// spec.
-									
-									String	action_content = "";
-									
-									byte[]	buffer = new byte[1024];
-									
-									InputStream	is = request.getInputStream();
-									
-									while( true ){
-										
-										int	len = is.read( buffer );
-										
-										if ( len < 0 ){
-											
-											break;
+												stream.close();
+											}
 										}
-										
-										action_content += new String( buffer, 0, len, "UTF-8" );
 									}
 									
-									action_content	= action_content.trim();
-									
-									String	result;
-									
-									try{
-										result = 
-											processAction(
-													host,
-													client,
-													url,
-													action,
-													plugin_interface.getUtilities().getSimpleXMLParserDocumentFactory().create( 
-															action_content ),
-													filters );
-									}catch( Throwable e ){
-										
-										logger.log( "Failed to process action '" + action_content + "' - " + Debug.getNestedExceptionMessage(e));
-										
-										result = null;
-									}
-									
-									if ( result == null ){
-										
-											// not implemented
-										
-										response.setReplyStatus( 501 );
-										
-									}else{
-									
-										response.setHeader( "SERVER", getServerName());
-										
-										response.useStream( "xml", new ByteArrayInputStream( result.getBytes( "UTF-8" )));
-									}
-									
-									return( true );
-									
-								}catch( Throwable e ){
-									
-									Debug.printStackTrace(e);
-									
-									logger.log( e );
+									String 	temp = header.replaceAll( "\r", "\\\\r" ).replaceAll( "\n", "\\\\n" );
+	
+									logger.log( "HTTP: no match for " + url );
+									logger.log( "    header: " + temp );
+									logger.log( "    decoded: " + headers );
 									
 									return( false );
+									
+								}else{
+														
+									String	host = (String)headers.get( "host" );
+									
+									if ( host == null ){
+										
+										host = getLocalIP();
+										
+									}else{
+										
+										int	pos = host.indexOf(':');
+										
+										if ( pos != -1 ){
+											
+											host	= host.substring(0,pos);
+										}
+										
+										host	= host.trim();
+									}
+									
+									String	client = (String)headers.get( "user-agent" );
+									
+									if ( client == null ){
+										
+										client = request.getClientAddress();
+										
+									}else{
+										
+										client = client + ":" + request.getClientAddress();
+									}
+									
+									try{
+											// Philips steamium sends invalid XML (trailing 0 byte screws the parser) so
+											// sanitise it here. Note it has to be in utf-8 as this is part of the UPnP 
+											// spec.
+										
+										String	action_content = "";
+										
+										byte[]	buffer = new byte[1024];
+										
+										InputStream	is = request.getInputStream();
+										
+										while( true ){
+											
+											int	len = is.read( buffer );
+											
+											if ( len < 0 ){
+												
+												break;
+											}
+											
+											action_content += new String( buffer, 0, len, "UTF-8" );
+										}
+										
+										action_content	= action_content.trim();
+										
+										String	result;
+										
+										try{
+											result = 
+												processAction(
+														host,
+														client,
+														url,
+														action,
+														plugin_interface.getUtilities().getSimpleXMLParserDocumentFactory().create( 
+																action_content ),
+														filters );
+										}catch( Throwable e ){
+											
+											logger.log( "Failed to process action '" + action_content + "' - " + Debug.getNestedExceptionMessage(e));
+											
+											result = null;
+										}
+										
+										if ( result == null ){
+											
+												// not implemented
+											
+											response.setReplyStatus( 501 );
+											
+										}else{
+										
+											response.setHeader( "SERVER", getServerName());
+											
+											response.useStream( "xml", new ByteArrayInputStream( result.getBytes( "UTF-8" )));
+										}
+										
+										return( true );
+										
+									}catch( Throwable e ){
+										
+										Debug.printStackTrace(e);
+										
+										logger.log( e );
+										
+										return( false );
+									}
 								}
 							}
-						}
-					});
+						});
+				}
 				
 				ssdp_listener = 
 						new UPnPSSDPListener()
